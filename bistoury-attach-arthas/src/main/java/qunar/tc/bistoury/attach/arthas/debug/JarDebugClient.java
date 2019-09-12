@@ -51,12 +51,15 @@ public class JarDebugClient implements InstrumentClient {
 
     private static final String FILE_PROTOCOL = "file:";
 
-    private final Map<String, ClassInfo> class_classInfo;
+    private final InstrumentInfo instrumentInfo;
+
+    private volatile Map<String, ClassInfo> classNameToClassInfoMapping = Maps.newHashMap();
 
     JarDebugClient(InstrumentInfo instrumentInfo) {
+        this.instrumentInfo = instrumentInfo;
         logger.info("start init jar debugg client");
         try {
-            class_classInfo = initAllClassInfo(instrumentInfo);
+            classNameToClassInfoMapping = initAllClassInfo(instrumentInfo, true);
             logger.info("success init jar decompiler client");
         } catch (Exception e) {
             destroy();
@@ -65,17 +68,27 @@ public class JarDebugClient implements InstrumentClient {
         }
     }
 
-    private Map<String, ClassInfo> initAllClassInfo(InstrumentInfo instrumentInfo) {
+    private Map<String, ClassInfo> initAllClassInfo(InstrumentInfo instrumentInfo, boolean isLoadAll) {
         Class[] loadedClasses = instrumentInfo.getInstrumentation().getAllLoadedClasses();
-        Map<String, ClassInfo> classInfoMap = Maps.newHashMap();
+        Map<String, ClassInfo> classInfoMap;
+        if (isLoadAll) {
+            classInfoMap = Maps.newHashMap();
+        } else {
+            classInfoMap = Maps.newHashMap(classNameToClassInfoMapping);
+        }
         Map<String, JarFile> jarFileMap = new HashMap<>();
         Map<String, Optional<Properties>> mavenInfoMap = new HashMap<>();
         try {
             for (Class clazz : loadedClasses) {
                 final String clazzName = clazz.getName();
-                if (Strings.isNullOrEmpty(clazzName) || clazzName.startsWith("[") || clazzName.indexOf("$") >= 0) {
+                if (Strings.isNullOrEmpty(clazzName) || clazzName.startsWith("[") || clazzName.contains("$")) {
                     continue;
                 }
+
+                if (!isLoadAll && classInfoMap.containsKey(clazzName)) {
+                    continue;
+                }
+
                 final ClassLoader classLoader = clazz.getClassLoader();
                 if (classLoader == null || InstrumentInfo.IGNORE_CLASS.contains(classLoader.getClass().getName())) {
                     continue;
@@ -98,11 +111,36 @@ public class JarDebugClient implements InstrumentClient {
     }
 
     public Set<String> getAllClass() {
-        return ImmutableSet.copyOf(class_classInfo.keySet());
+        return ImmutableSet.copyOf(classNameToClassInfoMapping.keySet());
     }
 
+    /**
+     * 所有类全部重新加载
+     *
+     * @return
+     */
+    public boolean reloadAllClass() {
+        logger.info("begin reload all class");
+        classNameToClassInfoMapping = initAllClassInfo(instrumentInfo, true);
+        logger.info("end reload all class");
+        return true;
+    }
+
+    /**
+     * 只加载没有加载的类
+     *
+     * @return
+     */
+    public boolean reLoadNewClass() {
+        logger.info("begin reload new class");
+        classNameToClassInfoMapping = initAllClassInfo(instrumentInfo, false);
+        logger.info("end reload new class");
+        return true;
+    }
+
+
     public ClassInfo getClassPath(final String className) {
-        return class_classInfo.get(className);
+        return classNameToClassInfoMapping.get(className);
     }
 
     private ClassInfo getClassInfo(Class clazz, Map<String, JarFile> jarFileMap, Map<String, Optional<Properties>> mavenInfoMap) {

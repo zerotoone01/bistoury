@@ -18,6 +18,9 @@
 package qunar.tc.bistoury.common;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
 import java.io.*;
@@ -51,17 +54,31 @@ public final class FileUtil {
         return result;
     }
 
-    private static void listFile(List<String> result, File file) {
+    public static List<File> listFile(File file, Predicate<File> filter) {
+        List<File> result = Lists.newArrayList();
+        listFile(result, file, filter);
+        return result;
+    }
+
+    private static void listFile(List<String> resultNames, File file) {
+        List<File> resultFiles = Lists.newArrayList();
+        listFile(resultFiles, file, Predicates.<File>alwaysTrue());
+        for (File resultFile : resultFiles) {
+            resultNames.add(resultFile.getName());
+        }
+    }
+
+    private static void listFile(List<File> resultFiles, File file, Predicate<File> filter) {
         if (file.isDirectory()) {
             File[] files = file.listFiles();
-            if (files == null)
+            if (files == null) {
                 return;
-
-            for (File f : files) {
-                listFile(result, f);
             }
-        } else {
-            result.add(file.getName());
+            for (File f : files) {
+                listFile(resultFiles, f, filter);
+            }
+        } else if (filter.apply(file)) {
+            resultFiles.add(file);
         }
     }
 
@@ -74,7 +91,7 @@ public final class FileUtil {
      */
     public static String dealPath(String basePath, String paramPath) {
         Path path = Paths.get(parseUserHomePath(basePath));
-        return path.resolveSibling(parseUserHomePath(paramPath)).normalize().toString();
+        return path.resolve(parseUserHomePath(paramPath)).normalize().toString();
     }
 
     private static String parseUserHomePath(String path) {

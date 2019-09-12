@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 set -euo pipefail
 BISTOURY_BIN="${BASH_SOURCE-$0}"
 BISTOURY_BIN="$(dirname "$BISTOURY_BIN")"
@@ -8,12 +8,16 @@ BISTOURY_MAIN="qunar.tc.bistoury.ui.container.Bootstrap"
 . "$BISTOURY_BIN_DIR/base.sh"
 . "$BISTOURY_BIN_DIR/bistoury-ui-env.sh"
 
-CMD=${!#}
+for CMD in "$@";do true; done
 
-while getopts j: opt;do
+LOCAL_IP=""
+
+while getopts j:i:h opt;do
     case $opt in
         j) JAVA_HOME=$OPTARG;;
-        *) echo "-j    通过-j指定java home"
+        i) LOCAL_IP=$OPTARG;;
+        h|*) echo "-j    通过-j指定java home"
+           echo "-i    通过-i参数指定本机ip"
            echo "-h    通过-h查看命令帮助"
            exit 0
     esac
@@ -24,8 +28,13 @@ if [[ "$JAVA_HOME" != "" ]];then
 else
     JAVA=java;
 fi
+
+if [[ -n $LOCAL_IP ]]; then
+    JAVA_OPTS="$JAVA_OPTS -Dbistoury.local.host=$LOCAL_IP"
+fi
+
 CLASSPATH="$CLASSPATH:$JAVA_HOME/lib/tools.jar:$JAVA_HOME/lib/sa-jdi.jar"
-JAVA_OPTS="$JAVA_OPTS -Xloggc:${BISTOURY_LOG_DIR}/bistoury-gc-${TIMESTAMP}.log -XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${BISTOURY_LOG_DIR}"
+JAVA_OPTS="$JAVA_OPTS -Xloggc:${BISTOURY_LOG_DIR}/bistoury-gc-${TIMESTAMP}.log -XX:+PrintGC -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${BISTOURY_LOG_DIR}"
 BISTOURY_PID_FILE="$BISTOURY_PID_DIR/bistoury-ui.pid"
 BISTOURY_DAEMON_OUT="$BISTOURY_LOG_DIR/bistoury-ui.out"
 

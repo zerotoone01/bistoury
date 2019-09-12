@@ -6,8 +6,34 @@
 
     <groupId>qunar.tc.bistoury</groupId>
     <artifactId>bistoury</artifactId>
-    <version>1.4.0-SNAPSHOT</version>
+    <version>2.0.6</version>
     <packaging>pom</packaging>
+
+    <licenses>
+        <license>
+            <name>GNU GENERAL PUBLIC LICENSE Version 3</name>
+            <url>https://www.gnu.org/licenses/gpl.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>wikiwikiwiki</id>
+            <name>zhenyu.nie</name>
+            <email>dreamingnie@outlook.com</email>
+        </developer>
+        <developer>
+            <id>xleiy</id>
+            <name>leix.xie</name>
+            <email>leix.xie@gmail.com</email>
+        </developer>
+        <developer>
+            <id>wenbeicai</id>
+            <name>cai.wen</name>
+            <email>wenbeicai@gmail.com</email>
+        </developer>
+    </developers>
 
     <modules>
         <module>bistoury-common</module>
@@ -31,22 +57,25 @@
         <module>bistoury-ui</module>
         <module>bistoury-dist</module>
         <module>bistoury-metrics-prometheus</module>
+        <module>bistoury-ui-service</module>
+        <module>bistoury-ui-service-impl</module>
+        <module>bistoury-application</module>
     </modules>
 
     <properties>
         <maven_compiler_plugin_version>3.2</maven_compiler_plugin_version>
         <org.springframework.version>4.3.10.RELEASE</org.springframework.version>
-        <jackson.version>2.8.10</jackson.version>
+        <jackson.version>2.9.2</jackson.version>
         <gitlab.version>1.2.5</gitlab.version>
         <servlet.version>3.1.0</servlet.version>
         <guava.version>20.0</guava.version>
         <gson.version>2.6.2</gson.version>
         <guice.version>4.0</guice.version>
         <arthas.version>3.1.1</arthas.version>
-        <fastjson.version>1.2.58</fastjson.version>
+        <fastjson.version>1.2.60</fastjson.version>
         <vjtools.version>1.0.6</vjtools.version>
         <junit.version>4.10</junit.version>
-        <cfr.version>0.136</cfr.version>
+        <cfr.version>0.132</cfr.version>
         <zookeeper.version>3.4.6</zookeeper.version>
         <curator.framework.version>2.6.0</curator.framework.version>
         <netty.all.version>4.0.36.Final</netty.all.version>
@@ -62,8 +91,8 @@
         <rocksdb.version>5.17.2</rocksdb.version>
         <asm.version>7.0</asm.version>
 
-        <java_source_version>1.8</java_source_version>
-        <java_target_version>1.8</java_target_version>
+        <java_source_version>1.7</java_source_version>
+        <java_target_version>1.7</java_target_version>
         <file_encoding>UTF-8</file_encoding>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -165,6 +194,16 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>bistoury-ui-service</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>bistoury-ui-service-impl</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>bistoury-proxy</artifactId>
                 <version>${project.parent.version}</version>
             </dependency>
@@ -176,6 +215,16 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>bistoury-metrics-prometheus</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>qunar.tc.bistoury</groupId>
+                <artifactId>bistoury-application-api</artifactId>
+                <version>${project.parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>qunar.tc.bistoury</groupId>
+                <artifactId>bistoury-application-mysql</artifactId>
                 <version>${project.parent.version}</version>
             </dependency>
             <dependency>
@@ -370,7 +419,6 @@
                 <artifactId>java-gitlab-api</artifactId>
                 <version>${gitlab.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit-dep</artifactId>
@@ -507,6 +555,11 @@
             </dependency>
             <dependency>
                 <groupId>org.springframework</groupId>
+                <artifactId>spring-context</artifactId>
+                <version>${org.springframework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
                 <artifactId>spring-jdbc</artifactId>
                 <version>${org.springframework.version}</version>
             </dependency>
@@ -520,7 +573,6 @@
                 <groupId>org.apache.tomcat</groupId>
                 <artifactId>tomcat-jdbc</artifactId>
                 <version>${tomcat-jdbc.version}</version>
-                <scope>runtime</scope>
             </dependency>
             <dependency>
                 <groupId>mysql</groupId>
@@ -580,6 +632,22 @@
     </dependencyManagement>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources.${deploy.type}</directory>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>src/main/webapp</directory>
+                <targetPath>${basedir}/target/webapp</targetPath>
+                <includes>
+                    <include>**/*.*</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -599,6 +667,11 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+        </plugins>
 
     </build>
 

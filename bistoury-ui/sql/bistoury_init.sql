@@ -47,7 +47,7 @@ CREATE TABLE bistoury_server
     log_dir  VARCHAR(255) DEFAULT '' NOT NULL COMMENT 'server 日志目录',
     room     VARCHAR(20)  DEFAULT '' NOT NULL COMMENT 'server机房',
     app_code varchar(50)  default '' not null comment '对应的appcode',
-    auto_jstack_enable tinyint default 0 not null comment '自动jstack打开状态：0为关闭，1为开启',
+    auto_jstack_enable tinyint default 1 not null comment '自动jstack打开状态：0为关闭，1为开启',
     auto_jmap_histo_enable tinyint default 0 not null comment '打开自动jmap histo状态：0为关闭，1为开启',
     index idx_app_code (app_code),
     constraint uniq_server_id unique (server_id),
@@ -60,7 +60,7 @@ CREATE TABLE `bistoury_gitlab_token`
     `id`            int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键id',
     `user_code`     varchar(50)      NOT NULL DEFAULT '' COMMENT '用户code',
     `private_token` varchar(100)     NOT NULL DEFAULT '' COMMENT 'gitlab private token',
-    `create_time`   timestamp        NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT '创建时间',
+    `create_time`   timestamp        NOT NULL DEFAULT '1970-01-01 08:00:01' COMMENT '创建时间',
     `update_time`   timestamp        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uniq_user_code` (`user_code`)

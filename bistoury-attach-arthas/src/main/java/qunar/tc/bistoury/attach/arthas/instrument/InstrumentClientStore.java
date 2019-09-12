@@ -17,6 +17,7 @@
 
 package qunar.tc.bistoury.attach.arthas.instrument;
 
+import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.taobao.middleware.logger.Logger;
@@ -51,14 +52,22 @@ public class InstrumentClientStore {
 
     private static InstrumentInfo instrumentInfo;
 
-    public static synchronized void init(Instrumentation instrumentation) {
+    public static synchronized void init(final Instrumentation instrumentation) {
         if (init) {
             return;
         }
 
         init = true;
 
-        AppLibClassSupplier appLibClassSupplier = Suppliers.memoize(new DefaultAppLibClassSupplier(instrumentation)::get)::get;
+        AppLibClassSupplier appLibClassSupplier = new AppLibClassSupplier() {
+            private final Supplier<Class<?>> memoize = Suppliers.memoize(new DefaultAppLibClassSupplier(instrumentation));
+
+            @Override
+            public Class<?> get() {
+                return memoize.get();
+            }
+        };
+
         AppClassPathSupplier appClassPathSupplier = new DefaultAppClassPathSupplier(appLibClassSupplier);
 
         instrumentInfo = new InstrumentInfo(
@@ -69,6 +78,19 @@ public class InstrumentClientStore {
                 DefaultClassFileBuffer.getInstance());
 
         ImmutableList.Builder<InstrumentClient> builder = new ImmutableList.Builder<>();
+
+        //jar debug放在最前面，因为在里面会对jar包启动的项目进行解压
+        try {
+            builder.add(JarDebugClients.create(instrumentInfo));
+        } catch (Exception e) {
+            logger.error("", "jar decompiler init error", e);
+        }
+
+        try {
+            builder.add(AppConfigClients.create(instrumentInfo));
+        } catch (Exception e) {
+            logger.error("", "app config client init error", e);
+        }
 
         try {
             builder.add(QDebugClients.create(instrumentInfo));
@@ -87,27 +109,20 @@ public class InstrumentClientStore {
             logger.error("", "jar info client init error", e);
         }
 
-        try {
-            builder.add(AppConfigClients.create(instrumentInfo));
-        } catch (Exception e) {
-            logger.error("", "app config client init error", e);
-        }
-
-        try {
-            builder.add(JarDebugClients.create(instrumentInfo));
-        } catch (Exception e) {
-            logger.error("", "jar decompiler init error", e);
-        }
         clients = builder.build();
     }
 
     public static synchronized void destroy() {
-        if (instrumentInfo != null) {
-            instrumentInfo.reset();
+        try {
+            if (instrumentInfo != null) {
+                instrumentInfo.reset();
 
-            for (InstrumentClient client : clients) {
-                client.destroy();
+                for (InstrumentClient client : clients) {
+                    client.destroy();
+                }
             }
+        } catch (Exception e) {
+            logger.error("", "destroy error", e);
         }
     }
 }

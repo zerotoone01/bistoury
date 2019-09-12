@@ -29,12 +29,16 @@ import qunar.tc.bistoury.common.AsyncHttpClientHolder;
 import qunar.tc.bistoury.common.JacksonSerializer;
 import qunar.tc.bistoury.serverside.bean.ApiResult;
 import qunar.tc.bistoury.serverside.configuration.DynamicConfigLoader;
+import qunar.tc.bistoury.serverside.configuration.local.LocalDynamicConfig;
 import qunar.tc.bistoury.serverside.util.ResultHelper;
 import qunar.tc.bistoury.ui.service.ProxyService;
+import qunar.tc.bistoury.ui.util.ProxyInfo;
+import qunar.tc.bistoury.ui.util.ProxyInfoParse;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author zhenyu.nie created on 2019 2019/1/10 21:12
@@ -54,7 +58,8 @@ public class AgentMetaController {
 
     @PostConstruct
     public void init() {
-        DynamicConfigLoader.load("config.properties").addListener(conf -> proxyAgentMetaRefresh = conf.getString("agent.meta.refresh"));
+        DynamicConfigLoader.<LocalDynamicConfig>load("config.properties")
+                .addListener(conf -> proxyAgentMetaRefresh = conf.getString("agent.meta.refresh"));
     }
 
     @RequestMapping("agentMetaUpdate")
@@ -69,15 +74,18 @@ public class AgentMetaController {
         byte[] byteIps = JacksonSerializer.serializeToBytes(ips);
         List<String> proxyWebSocketUrls = proxyService.getAllProxyUrls();
         for (String proxyWebSocketUrl : proxyWebSocketUrls) {
-            String proxyIp = proxyWebSocketUrl.substring(0, proxyWebSocketUrl.indexOf(':'));
-            String url = buildAgentMetaRefreshUrl(proxyIp);
+            Optional<ProxyInfo> optional = ProxyInfoParse.parseProxyInfo(proxyWebSocketUrl);
+            if (!optional.isPresent()) {
+                continue;
+            }
+            String url = buildAgentMetaRefreshUrl(optional.get());
             doNotify(url, byteIps);
         }
         return ResultHelper.success(true);
     }
 
-    private String buildAgentMetaRefreshUrl(String proxyIp) {
-        return String.format(proxyAgentMetaRefresh, proxyIp);
+    private String buildAgentMetaRefreshUrl(ProxyInfo proxyInfo) {
+        return String.format(proxyAgentMetaRefresh, proxyInfo.getIp(), proxyInfo.getTomcatPort());
     }
 
     private void doNotify(String url, byte[] byteIps) {
